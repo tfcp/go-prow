@@ -30,6 +30,7 @@ type Project struct {
 type MergeRequest struct {
 	Iid          int    `json:"iid" form:"iid"`
 	TargetBranch string `json:"target_branch" form:"target_branch"`
+	State        string `json:"state" form:"state"`
 }
 
 type User struct {
@@ -77,6 +78,13 @@ func CommentApi(ctx *gin.Context) {
 		appG.Response(http.StatusInternalServerError, e.ERROR, err.Error())
 		return
 	}
-	service.CommentService()
+	service.CommentService(
+		cq.MergeRequest.State,
+		cq.ObjectAttributes.Note,
+		cq.User.Name,
+		cq.MergeRequest.TargetBranch,
+		cq.MergeRequest.Iid,
+		cq.ProjectId,
+	)
 	appG.Response(http.StatusOK, e.SUCCESS, cq)
 }

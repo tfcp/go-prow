@@ -4,6 +4,7 @@ import (
 	"github.com/GoAdminGroup/go-admin/context"
 	"github.com/GoAdminGroup/go-admin/modules/db"
 	"github.com/GoAdminGroup/go-admin/plugins/admin/modules/table"
+	"github.com/GoAdminGroup/go-admin/template/types"
 	"github.com/GoAdminGroup/go-admin/template/types/form"
 )
 
@@ -12,6 +13,8 @@ var (
 	robotDescribe = "机器人列表"
 	RobotTable    = "prow_robot"
 	robot         = Robot{}
+	robotEnable   = "1"
+	robotUnable   = "2"
 )
 
 type Robot struct {
@@ -28,11 +31,11 @@ func GetGitRobot(gitWebUrl, gitSshUrl string) (Robot, error) {
 	var robot Robot
 	//err := db.Find(&robot, condition).Error
 	where := map[string]interface{}{
-		"status":     1,
+		"status":     robotEnable,
 		"gitlab_url": gitWebUrl,
 	}
 	whereOr := map[string]interface{}{
-		"status":     1,
+		"status":     robotEnable,
 		"gitlab_url": gitSshUrl,
 	}
 	err := gormDb.Where(where).Or(whereOr).Find(&robot).Limit(1).Error
@@ -54,7 +57,7 @@ func GetProwRobotTable(ctx *context.Context) table.Table {
 	info.AddField(Lan(&robot, "description"), "description", db.Mediumtext)
 	info.AddField(Lan(&robot, "gitlab_url"), "gitlab_url", db.Varchar)
 	info.AddField(Lan(&robot, "gitlab_token"), "gitlab_token", db.Varchar)
-	info.AddField(Lan(&robot, "status"), "status", db.Int)
+	info.AddField(Lan(&robot, "status"), "status", db.Int).FieldBool(robotEnable, robotUnable)
 	info.AddField("创建时间", "create_at", db.Timestamp)
 	info.AddField("更新时间", "update_at", db.Timestamp)
 
@@ -62,11 +65,16 @@ func GetProwRobotTable(ctx *context.Context) table.Table {
 
 	formList := prowRobot.GetForm()
 	formList.AddField("Id", "id", db.Int, form.Default)
-	formList.AddField(Lan(&robot, "robot_name"), "robot_name", db.Varchar, form.Text)
-	//formList.AddField(Lan(&robot, "description"), "description", db.Mediumtext, form.RichText)
+	formList.AddField(Lan(&robot, "robot_name"), "robot_name", db.Varchar, form.Text).FieldMust()
+	//formList.AddField(Lan(&robot, "description"), "description", db.Mediumtext, form.RichText).
 	formList.AddField(Lan(&robot, "description"), "description", db.Varchar, form.Text)
-	formList.AddField(Lan(&robot, "gitlab_token"), "gitlab_token", db.Varchar, form.Text)
-	formList.AddField(Lan(&robot, "status"), "status", db.Int, form.Text)
+	formList.AddField(Lan(&robot, "gitlab_token"), "gitlab_token", db.Varchar, form.Text).FieldMust()
+	formList.AddField(Lan(&robot, "status"), "status", db.Int, form.SelectSingle).FieldOptions(types.FieldOptions{
+		{Text: "启用", Value: robotEnable},
+		{Text: "禁用", Value: robotUnable},
+	}).
+		// 设置默认值
+		FieldDefault(robotEnable)
 
 	formList.SetTable(RobotTable).SetTitle(robotTitle).SetDescription(robotDescribe)
 

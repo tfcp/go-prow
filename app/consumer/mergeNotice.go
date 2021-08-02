@@ -7,16 +7,16 @@ import (
 
 var (
 	// notice que data userId
-	noticeQ = make(chan int, 100)
+	noticeQ = make(chan []string, 100)
 )
 
-func SetNotice(data int) {
+func SetMergeNotice(data []string) {
 	noticeQ <- data
 }
 
 // watch notice data
-func RunNotice() {
-	fmt.Println("notice consumer init success")
+func RunMergeNotice() {
+	fmt.Println("mergeNotice consumer init success")
 	// todo 日志
 	for {
 		select {

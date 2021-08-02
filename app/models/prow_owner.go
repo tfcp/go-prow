@@ -24,6 +24,15 @@ type Owner struct {
 	Description string `json:"description" zh:"描述" en:"description"`
 }
 
+func GetOwners() ([]*Owner, error) {
+	var owners []*Owner
+	err := gormDb.Find(&owners).Error
+	if err != nil {
+		return nil, err
+	}
+	return owners, nil
+}
+
 func GetProwOwnerTable(ctx *context.Context) table.Table {
 	prowOwner := table.NewDefaultTable(table.DefaultConfigWithDriver("mysql"))
 
@@ -43,9 +52,9 @@ func GetProwOwnerTable(ctx *context.Context) table.Table {
 
 	formList := prowOwner.GetForm()
 	formList.AddField("Id", "id", db.Int, form.Default)
-	formList.AddField(Lan(&owner, "owner_name"), "owner_name", db.Varchar, form.Text)
-	formList.AddField(Lan(&owner, "project_name"), "project_name", db.Varchar, form.Text)
-	formList.AddField(Lan(&owner, "path_name"), "path_name", db.Varchar, form.Text)
+	formList.AddField(Lan(&owner, "owner_name"), "owner_name", db.Varchar, form.Text).FieldMust()
+	formList.AddField(Lan(&owner, "project_name"), "project_name", db.Varchar, form.Text).FieldMust()
+	formList.AddField(Lan(&owner, "path_name"), "path_name", db.Varchar, form.Text).FieldMust()
 	formList.AddField(Lan(&owner, "phone"), "phone", db.Varchar, form.Text)
 	formList.AddField(Lan(&owner, "email"), "email", db.Varchar, form.Email)
 	formList.AddField(Lan(&owner, "description"), "description", db.Varchar, form.Text)

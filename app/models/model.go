@@ -29,6 +29,7 @@ var Generators = map[string]table.Generator{
 	"path":    GetProwPathTable,
 	"project": GetProwProjectTable,
 	"robot":   GetProwRobotTable,
+	"conf":    GetProwConfTable,
 
 	// generators end
 }

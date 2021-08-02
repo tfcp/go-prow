@@ -1,5 +1,5 @@
 package consumer
 
 func Setup() {
-	go RunNotice()
+	go RunMergeNotice()
 }

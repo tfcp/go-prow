@@ -6,33 +6,21 @@ import (
 	"github.com/xanzy/go-gitlab"
 	"go-prow/app/consumer"
 	"go-prow/app/models"
+	"strings"
 )
 
 var (
-	gitlabApi    = "https://git.medlinker.com/api/v4"
 	mergeOpen    = "opened"
 	TargetBranch = "master"
 )
 
-// gitlab change content
-type changeContent struct {
-	OldPath     string `json:"old_path"`
-	NewPath     string `json:"new_path"`
-	AMode       string `json:"a_mode"`
-	BMode       string `json:"b_mode"`
-	Diff        string `json:"diff"`
-	NewFile     bool   `json:"new_file"`
-	RenamedFile bool   `json:"renamed_file"`
-	DeletedFile bool   `json:"deleted_file"`
-}
-
-func getGitClient(gitHttpUrl, gitSshUrl string) (*gitlab.Client, error) {
-	robot, err := models.GetGitRobot(gitHttpUrl, gitSshUrl)
+func getGitClient() (*gitlab.Client, error) {
+	gitConf, err := models.GetGitConf()
 	if err != nil {
 		// todo log
 		return nil, err
 	}
-	git, err := gitlab.NewClient(robot.GitlabToken, gitlab.WithBaseURL(gitlabApi))
+	git, err := gitlab.NewClient(gitConf.Token, gitlab.WithBaseURL(gitConf.ApiAddr))
 	if err != nil {
 		return nil, err
 	}
@@ -48,32 +36,112 @@ func getTmplKey(proId, mrId int) string {
 }
 
 func MergeService(projectId, mrId int, mrState, targetBranch, gitHttpUrl, gitSshUrl string) error {
-	// merge状态必须为提交状态并且目标分支为master
+	// filter
 	if mrState != mergeOpen || targetBranch != TargetBranch {
 		return nil
 	}
-	git, err := getGitClient(gitHttpUrl, gitSshUrl)
-	//opt := &gitlab.UpdateSettingsOptions{}
-	//opt1 := &gitlab.RequestOptionFunc()
-	//options ...RequestOptionFunc
-	//a, _ := git.Settings.GetSettings()
-	//a.PushEventHooksLimit
+	git, err := getGitClient()
 	if err != nil {
 		// todo log
 		return err
 	}
 	// get changes list
-	//mr, _, err := git.MergeRequests.GetMergeRequestChanges(projectId, mrId, &gitlab.GetMergeRequestChangesOptions{})
-	_, _, err = git.MergeRequests.GetMergeRequestChanges(projectId, mrId, &gitlab.GetMergeRequestChangesOptions{})
+	mrChange, _, err := git.MergeRequests.GetMergeRequestChanges(projectId, mrId, &gitlab.GetMergeRequestChangesOptions{})
 	if err != nil {
 		// todo log
 		return err
 	}
+	paths, err := getChangePath(mrChange)
+	if err != nil {
+		// todo log
+		return err
+	}
+	if len(paths) > 0 {
+		// notice send
+		consumer.SetMergeNotice(paths)
+	}
 	return err
 }
 
-func CommentService() {
-	consumer.SetNotice(666)
+func CommentService(mrState, note, userName, targetBranch string, mrId, proId int) error {
+	if mrState != mergeOpen || targetBranch != TargetBranch {
+		return nil
+	}
+	gitConf, err := models.GetGitConf()
+	if err != nil {
+		// todo log
+		return err
+	}
+	// must keywords
+	if strings.ToLower(note) != gitConf.KeyWords {
+		return nil
+	}
+	_, err = getGitClient()
+	if err != nil {
+		// todo log
+		return err
+	}
+	return nil
+}
+
+// gitlab change content
+type changeContent struct {
+	OldPath     string `json:"old_path"`
+	NewPath     string `json:"new_path"`
+	AMode       string `json:"a_mode"`
+	BMode       string `json:"b_mode"`
+	Diff        string `json:"diff"`
+	NewFile     bool   `json:"new_file"`
+	RenamedFile bool   `json:"renamed_file"`
+	DeletedFile bool   `json:"deleted_file"`
+}
+
+func getChangePath(mr *gitlab.MergeRequest) (changePaths []string, err error) {
+	allChange := make([]changeContent, 0)
+	if mr.Changes == nil {
+		// todo log
+		return
+	}
+	mcs, err := json.Marshal(mr.Changes)
+	if err != nil {
+		// todo log
+		return
+	}
+	err = json.Unmarshal(mcs, &allChange)
+	if err != nil {
+		// todo log
+		return
+	}
+	for _, v := range allChange {
+		changePaths = append(changePaths, v.OldPath)
+	}
+	changePaths = ownersPathFilter(changePaths)
+	return
+}
+
+func ownersPathFilter(changePaths []string) (ownerPaths []string) {
+	if len(changePaths) == 0 {
+		return
+	}
+	owners, err := models.GetOwners()
+	if err != nil {
+		// todo log
+		return
+	}
+	resChangePathMap := map[string]string{}
+	for _, owner := range owners {
+		for _, changePath := range changePaths {
+			if strings.Contains(changePath, owner.PathName) {
+				// filter duplicate path
+				resChangePathMap[owner.PathName] = owner.PathName
+			}
+		}
+	}
+	// get path data
+	for _, v := range resChangePathMap {
+		ownerPaths = append(ownerPaths, v)
+	}
+	return
 }
 
 func getOwnerChangePath(mr *gitlab.MergeRequest) (paths []string, err error) {
