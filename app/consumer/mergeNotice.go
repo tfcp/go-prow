@@ -21,7 +21,10 @@ func RunMergeNotice() {
 	for {
 		select {
 		case nt := <-noticeQ:
-			fmt.Println("this is nt:", nt)
+			// merge notice
+			fmt.Println("this is mr notice:", nt)
+			// robot git merge reply
+			fmt.Println("this is mr robot comment:", nt)
 		default:
 
 		}
