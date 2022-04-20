@@ -1,0 +1,54 @@
+run:
+  timeout: 10m
+
+linters-settings:
+  golint:
+    min-confidence: 0
+  errcheck:
+    check-type-assertions: false
+    check-blank: false
+  gocritic:
+    enabled-checks:
+      - appendAssign
+      - underef
+      - yodaStyleExpr
+  depguard:
+    list-type: blacklist
+    include-go-root: false
+    packages-with-error-message:
+      - 'github.com/satori/go.uuid': "use github.com/google/uuid instead"
+      - 'gopkg.in/yaml.v2': "use gopkg.in/yaml.v3 instead"
+      - 'golang.org/x/net/context': "use context instead"
+
+linters:
+  disable-all: true
+  enable:
+    - gofmt
+    - govet
+    - goimports
+    #    - typecheck
+    #    - unused
+    #    - staticcheck
+    #    - gas
+    #    - ineffassign
+    #    - gosimple
+    #    - maligned
+    #    - gocritic
+    #    - depguard
+    # NOTE(timonwong) 错误太特么多了，因此暂时关闭了 golint, errcheck 之后请打开
+    #    - golint    # 这个有点变态, 酌情开启
+    #    - varcheck  # 一般不用开, 检查 unused var
+    #    - errcheck
+    #    - scopelint
+
+    #- goconst
+    #- structcheck
+#    - bodyclose
+#    - rowserrcheck
+#    - unconvert
+
+issues:
+  exclude-rules:
+    - text: "composite literal uses unkeyed fields"
+      linters:
+        - govet

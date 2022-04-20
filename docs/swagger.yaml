@@ -1,0 +1,60 @@
+definitions:
+  utils.Res:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /demo/hello-info:
+    get:
+      parameters:
+      - description: name 名称
+        in: query
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Res'
+      summary: swagger文档示例1
+      tags:
+      - 示例
+  /demo/user-list:
+    get:
+      parameters:
+      - description: 'name '
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: 'sex '
+        in: query
+        name: sex
+        required: true
+        type: string
+      - description: 'page '
+        in: query
+        name: page
+        required: true
+        type: string
+      - description: 'page_size '
+        in: query
+        name: page_size
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Res'
+      summary: swagger文档示例2
+      tags:
+      - 示例
+swagger: "2.0"

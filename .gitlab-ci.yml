@@ -1,0 +1,15 @@
+image: registry-vpc.cn-hangzhou.aliyuncs.com/medlinker/golang:1.13.1
+stages:
+  - lint
+before_script:
+  - echo "before_script"
+  - git config --global url."https://oauth2:$GITLAB_TOKEN@git.medlinker.com".insteadOf "https://git.medlinker.com"
+  - go env -w GOPROXY=https://goproxy.cn,direct
+  - go env -w GOPRIVATE=git.medlinker.com
+  - go version
+lint-job:
+  image: golangci/golangci-lint:v1.27.0
+  stage: lint
+  allow_failure: false
+  script:
+    - golangci-lint run

@@ -1,0 +1,30 @@
+[api]
+ addr="0.0.0.0:8008"
+
+[redis]
+    [redis.default]
+       host         = "127.0.0.1:6379"
+       db           = "0"
+       pwd          = "pwd"
+       maxIdle      = 20
+       maxActive    = 20
+       idleTimeout  = 200
+[log]
+    path    =   "./logs"
+    level   =   "all"
+    stdout  =   "true"
+    format  =   "{Y-m-d}.log"
+
+[database]
+    [database.demo]
+        host        = "127.0.0.1"
+        port        = "3306"
+        prefix      = ""
+        user        = "root"
+        pass        = "root"
+        name        = "demo"
+        type        = "mysql"
+        tabel       = "hello"
+[mq]
+    [mq.kafka]
+        addr = ["127.0.0.1:9092"]

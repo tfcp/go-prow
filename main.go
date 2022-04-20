@@ -1,12 +1,22 @@
 package main
 
 import (
-	_ "github.com/GoAdminGroup/go-admin/adapter/gin"              // web framework adapter
-	_ "github.com/GoAdminGroup/go-admin/modules/db/drivers/mysql" // sql driver
-	_ "github.com/GoAdminGroup/themes/sword"                      // ui theme
-	"go-prow/bootstrap"
+	"prow/bootstrap"
+	"prow/library/log"
+	"github.com/gogf/gf/os/gcmd"
 )
 
 func main() {
-	bootstrap.StartServer()
+	if err := gcmd.BindHandleMap(map[string]func(){
+		"server":  bootstrap.Run,
+		"process": bootstrap.RunProcess,
+		"cron":    bootstrap.RunCron,
+		"help":    bootstrap.RunHelp,
+		"tools":   bootstrap.RunTools,
+	}); err != nil {
+		log.Logger.Fatal(err)
+	}
+	if err := gcmd.AutoRun(); err != nil {
+		log.Logger.Fatal(err)
+	}
 }

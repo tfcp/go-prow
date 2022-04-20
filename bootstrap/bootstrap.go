@@ -1,67 +1,100 @@
 package bootstrap
 
 import (
-	"github.com/GoAdminGroup/go-admin/engine"
-	"github.com/GoAdminGroup/go-admin/modules/config"
-	"github.com/GoAdminGroup/go-admin/template"
-	"github.com/GoAdminGroup/go-admin/template/chartjs"
-	"github.com/gin-gonic/gin"
-	"go-prow/app"
-	"go-prow/app/api"
-	"go-prow/app/consumer"
-	"go-prow/app/models"
-	"io/ioutil"
-	"log"
-	"os"
-	"os/signal"
+	"fmt"
+	"prow/app/cron"
+	"prow/app/process"
+	"prow/internal/model"
+	"prow/library/gredis"
+	"prow/library/log"
+	"prow/router"
+	"prow/tools"
+	"github.com/gogf/gf/frame/g"
+	"github.com/gogf/gf/os/gcmd"
 )
 
-var (
-	prowConfig = config.ReadFromJson("./config/config.json")
-)
-
-func init() {
-	models.Setup()
-	consumer.Setup()
+func bootstrap() {
+	log.Setup()
+	if err := gredis.Setup(); err != nil {
+		log.Logger.Fatalf("redis init error:%v", err)
+	}
+	if err := model.Setup(); err != nil {
+		log.Logger.Fatalf("db init error:%v", err)
+		return
+	}
 }
 
-func StartServer() {
-	gin.SetMode(gin.ReleaseMode)
-	gin.DefaultWriter = ioutil.Discard
+// web project
+func Run() {
+	bootstrap()
+	router.RegisterRouter()
+	addr := g.Config().GetString("api.addr")
+	if err := router.Router.Run(addr); err != nil {
+		log.Logger.Fatalf("router init error:%v", err)
+	}
+}
 
-	r := app.InitRouter()
-	template.AddComp(chartjs.NewChart())
-	eng := engine.Default()
-	//adminPlugin := admin.NewAdmin(datamodel.Generators)
-	//adminPlugin.AddGenerator("user", datamodel.GetUserTable)
-	//login.Init(login.Config{
-	//	Theme: "theme2",
-	//	//CaptchaDigits: 5, // 使用图片验证码，这里代表多少个验证码数字
-	//	// 使用腾讯验证码，需提供appID与appSecret
-	//	// TencentWaterProofWallData: login.TencentWaterProofWallData{
-	//	//    AppID:"",
-	//	//    AppSecret: "",
-	//	// }
-	//})
-	if err := eng.AddConfig(&prowConfig).
-		AddGenerators(models.Generators).
-		//AddPlugins(adminPlugin).
-		Use(r); err != nil {
-		panic(err)
+// cronjob
+func RunCron() {
+	bootstrap()
+	cron.Cron()
+	select {}
+}
+
+// consumer
+func RunProcess() {
+	bootstrap()
+	process.Process()
+	select {}
+}
+
+func RunTools() {
+	//toolArg := gcmd.GetArg(1, "tools")
+	opts := gcmd.GetOptAll()
+	toolName := gcmd.GetOpt("cmd", "orm")
+	switch toolName {
+	// ormGen tool
+	// -t: tableName
+	// -d: database if null is default
+	case "orm":
+		database := "default"
+		table := ""
+		if _, ok := opts["d"]; ok {
+			database = opts["d"]
+		}
+		if _, ok := opts["t"]; !ok {
+			fmt.Println(`
+this a quick orm generate tools.
+
+Usage:
+
+	go run main.go tools -t tableName -d databaseName
+
+
+				`)
+			return
+		}
+		table = opts["t"]
+		tools.OrmGenTools(table, database)
 	}
 
-	//adminPlugin.SetCaptcha(map[string]string{"driver": login.CaptchaDriverKeyDefault})
-	r.Static("/uploads", "./uploads")
-	eng.HTML("GET", "/", api.GetDashBoard)
-	eng.HTML("GET", "/prow", api.GetDashBoard)
-	//eng.HTMLFile("GET", "/goprow/hello", "./html/hello.tmpl", map[string]interface{}{
-	//	//	"msg": "Hello world",
-	//	//})
+}
 
-	_ = r.Run(":9033")
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
-	<-quit
-	log.Print("closing database connection")
-	eng.MysqlConnection().Close()
+func RunHelp() {
+	helpInfo := `
+this is a go project. 
+
+Usage:
+	
+	go run main.go <command>
+
+The commands are:
+
+	server             start http server.
+	cron               start the cron job.
+	process            start the process.
+
+`
+	fmt.Println(helpInfo)
+
 }
