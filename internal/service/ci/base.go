@@ -11,6 +11,7 @@ import (
 )
 
 type BaseCi struct {
+	ownerModel *ci.Owner
 }
 
 func (this *BaseCi) getPaths(m *gitlab.MergeRequest) (paths []string, err error) {
@@ -34,7 +35,7 @@ func (this *BaseCi) getPaths(m *gitlab.MergeRequest) (paths []string, err error)
 	for _, v := range all {
 		pathRes = append(pathRes, v.OldPath)
 	}
-	paths = pathsFilter(pathRes)
+	paths = this.pathsFilter(pathRes)
 	return
 }
 
@@ -43,7 +44,7 @@ func (this *BaseCi) pathsFilter(paths []string) (pathsRes []string) {
 	if len(paths) == 0 {
 		return
 	}
-	prosRes, err := models.GetOwners()
+	prosRes, err := this.ownerModel.GetOwners(nil)
 	if err != nil {
 		log.Logger.Error("MergeService pathsFilter error:", err)
 		return
@@ -81,7 +82,7 @@ func (this *BaseCi) lockPaths(proId, mrId int, paths []string) (res bool) {
 		// 给mr中每个涉及项目加锁
 		_, err := gredis.RedisDo("hset", reviewKey, v, 1)
 		if err != nil {
-			fmt.Println("redis hset error:", err)
+			log.Logger.Errorf("redis hset error: %v", err)
 			return
 		}
 	}
