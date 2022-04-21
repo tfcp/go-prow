@@ -1,3 +1,0 @@
-package enum
-
-var ()

@@ -2,9 +2,8 @@ package demo
 
 import (
 	"fmt"
-	"prow/internal/model"
 	"github.com/gogf/gf/frame/g"
-	"github.com/jinzhu/gorm"
+	"prow/internal/model"
 )
 
 
@@ -14,7 +13,7 @@ type Hello struct {
 	Age  int    `json:"age"`
 }
 
-func (this *Hello) TableName(db *gorm.DB) string{
+func (this *Hello) TableName() string{
 	tableName := "hello"
 	return fmt.Sprintf("%s%s",g.Config().GetString("database.demo.prefix"),tableName)
 }
